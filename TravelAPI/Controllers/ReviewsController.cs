@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelAPI.Models;
@@ -18,10 +19,12 @@ namespace TravelAPI.Controllers
       _db = db;
     }
 
-    
-// GET: api/destinations/5/reviews
+
+    // GET: localhost:5000/api/reviews?sorted=true
+    // get: http://localhost:5000/api/Reviews?sorted=true
+    // get: http://localhost:5000/api/Reviews?country=france
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Review>>> Get(string country)
+    public async Task<ActionResult<IEnumerable<Review>>> Get(string country, string city, bool sorted = false)
     {
       var query = _db.Reviews.AsQueryable();
 
@@ -29,9 +32,20 @@ namespace TravelAPI.Controllers
       {
         query = query.Where(entry => entry.Country == country);
       }
+      if (city != null)
+      {
+        query = query.Where(entry => entry.City == city);
+      }
+      if (sorted)
+      {
+        query = query.OrderByDescending(entry => entry.Rating);
+      }
+
 
       return await query.ToListAsync();
     }
+
+
     // POST api/Reviews
     [HttpPost]
     public async Task<ActionResult<Review>> Post(Review Review)
@@ -42,19 +56,95 @@ namespace TravelAPI.Controllers
       return CreatedAtAction("Post", new { id = Review.ReviewId }, Review);
     }
 
-    // GET: api/Reviews/5
+    [HttpGet("mostVisited")]
+    public async Task<ActionResult<List<string>>> GetMostVisited()
+    {
+      //http://localhost:5000/api/Reviews/mostVisited
+      // var query = .AsQueryable();
+
+      var queryList = await _db.Reviews.ToListAsync();
+      
+      Dictionary<string, int> reviewsPerCity = new Dictionary<string, int>();
+      for (int i = 0; i<queryList.Count; i++)
+      {
+        //if in already ++
+        if(reviewsPerCity.ContainsKey(queryList[i].City))
+        {
+          reviewsPerCity[queryList[i].City]++;
+        }
+        else
+        {
+          reviewsPerCity.Add(queryList[i].City, 1);
+        }
+        Console.WriteLine($"City name: {queryList[i].City}. Current count: {reviewsPerCity[queryList[i].City]}");
+      }
+
+      //sort
+      var sortedDict = reviewsPerCity.OrderByDescending(entry => entry.Value).Take(3);
+
+      List<string> result = new List<string>();
+      foreach(var entry in sortedDict)
+      {
+        result.Add(entry.Key);
+      }
+
+      foreach (var entry in result)
+      {
+        Console.WriteLine($"City: {entry}");
+      }
+      
+      return result;
+    }
+
+        // GET: api/Reviews/5
     [HttpGet("{id}")]
     public async Task<ActionResult<Review>> GetReview(int id)
     {
-        var review = await _db.Reviews.FindAsync(id);
+      var review = await _db.Reviews.FindAsync(id);
 
-        if (review == null)
-        {
-            return NotFound();
-        }
+      if (review == null)
+      {
+        return NotFound();
+      }
 
-        return review;
+      return review;
     }
+ // DELETE: api/Reviews/5
+     // DELETE: http://localhost:5000/api/Reviews/5?userName=lisa
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteReview(int id, string userName)
+    {
+      var reviewToDelete = await _db.Reviews.FirstOrDefaultAsync(entry => entry.ReviewId == id);
+      if (reviewToDelete == null)
+      {
+        return NotFound();
+      }
+
+      if (reviewToDelete.User != userName)
+      {
+        return Unauthorized();
+      }
+
+      _db.Reviews.Remove(reviewToDelete);
+      await _db.SaveChangesAsync();
+
+      return NoContent();
+    }
+    
   }
 }
+
+//  // GET: api/Animals
+//     [HttpGet]
+//     public async Task<ActionResult<IEnumerable<Animal>>> DeleteGet(string ues)
+//     {
+//       var query = _db.Animals.AsQueryable();
+
+//       if (species != null)
+//       {
+//         query = query.Where(entry => entry.Species == species);
+//       }
+
+//       return await query.ToListAsync();
+//     }
