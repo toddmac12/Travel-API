@@ -23,9 +23,18 @@ namespace TravelAPI.Controllers
     // GET: localhost:5000/api/reviews?sorted=true
     // get: http://localhost:5000/api/Reviews?sorted=true
     // get: http://localhost:5000/api/Reviews?country=france
+
+    //As a user, I want to look up random cities just for fun.
+    // input: ?random=true 
+    // output:  what data do we want to return? - 
+    // output: return a destination - return all reviews for a random city
+    // which route would it fit in? or do we need a new route?
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Review>>> Get(string country, string city, bool sorted = false)
     {
+
+
       var query = _db.Reviews.AsQueryable();
 
       if (country != null)
@@ -34,6 +43,27 @@ namespace TravelAPI.Controllers
       }
       if (city != null)
       {
+        //GET: http://localhost:5000/api/reviews/?city=random  string city = "random"
+
+        //test if the user wants reviews for a random city
+        if (city == "random")
+        {
+          //generate a random city (we already have the reviews from the database in the query variable)  c# has a Random class
+          Random randomNumberGenerator = new Random();
+          
+          List<string> uniqueCities = new List<string>();
+          foreach (Review review in query)
+          {
+            if (!uniqueCities.Contains(review.City))
+            {
+              uniqueCities.Add(review.City);
+            }
+          }
+
+          int randomNumber = randomNumberGenerator.Next(uniqueCities.Count);
+          city = uniqueCities[randomNumber];
+
+        }
         query = query.Where(entry => entry.City == city);
       }
       if (sorted)
@@ -44,7 +74,7 @@ namespace TravelAPI.Controllers
 
       return await query.ToListAsync();
     }
-
+    
 
     // POST api/Reviews
     [HttpPost]
@@ -76,7 +106,7 @@ namespace TravelAPI.Controllers
         {
           reviewsPerCity.Add(queryList[i].City, 1);
         }
-        Console.WriteLine($"City name: {queryList[i].City}. Current count: {reviewsPerCity[queryList[i].City]}");
+
       }
 
       //sort
@@ -88,10 +118,10 @@ namespace TravelAPI.Controllers
         result.Add(entry.Key);
       }
 
-      foreach (var entry in result)
-      {
-        Console.WriteLine($"City: {entry}");
-      }
+      // foreach (var entry in result)
+      // {
+      //   Console.WriteLine($"City: {entry}");
+      // }
 
       return result;
     }
