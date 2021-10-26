@@ -48,7 +48,7 @@ namespace TravelAPI.Controllers
 
     // POST api/Reviews
     [HttpPost]
-    public async Task<ActionResult<Review>> Post(Review Review)
+    public async Task<ActionResult<Review>> Post([FromBody] Review Review)
     {
       _db.Reviews.Add(Review);
       await _db.SaveChangesAsync();
@@ -63,12 +63,12 @@ namespace TravelAPI.Controllers
       // var query = .AsQueryable();
 
       var queryList = await _db.Reviews.ToListAsync();
-      
+
       Dictionary<string, int> reviewsPerCity = new Dictionary<string, int>();
-      for (int i = 0; i<queryList.Count; i++)
+      for (int i = 0; i < queryList.Count; i++)
       {
         //if in already ++
-        if(reviewsPerCity.ContainsKey(queryList[i].City))
+        if (reviewsPerCity.ContainsKey(queryList[i].City))
         {
           reviewsPerCity[queryList[i].City]++;
         }
@@ -83,7 +83,7 @@ namespace TravelAPI.Controllers
       var sortedDict = reviewsPerCity.OrderByDescending(entry => entry.Value).Take(3);
 
       List<string> result = new List<string>();
-      foreach(var entry in sortedDict)
+      foreach (var entry in sortedDict)
       {
         result.Add(entry.Key);
       }
@@ -92,11 +92,11 @@ namespace TravelAPI.Controllers
       {
         Console.WriteLine($"City: {entry}");
       }
-      
+
       return result;
     }
 
-        // GET: api/Reviews/5
+    // GET: api/Reviews/5
     [HttpGet("{id}")]
     public async Task<ActionResult<Review>> GetReview(int id)
     {
@@ -109,8 +109,8 @@ namespace TravelAPI.Controllers
 
       return review;
     }
- // DELETE: api/Reviews/5
-     // DELETE: http://localhost:5000/api/Reviews/5?userName=lisa
+    // DELETE: api/Reviews/5
+    // DELETE: http://localhost:5000/api/Reviews/5?userName=lisa
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteReview(int id, string userName)
@@ -131,20 +131,23 @@ namespace TravelAPI.Controllers
 
       return NoContent();
     }
-    
+
+    // PUT: api/Reviews/5
+    [HttpPut("{id}")]
+    public async Task<IActionResult> PutReview(int id, Review review, string userName)
+    {
+      if (id != review.ReviewId)
+      {
+        return BadRequest();
+      }
+      if (review.User != userName)
+      {
+        return Unauthorized();
+      }
+      _db.Entry(review).State = EntityState.Modified;
+      await _db.SaveChangesAsync();
+
+      return NoContent();
+    }
   }
 }
-
-//  // GET: api/Animals
-//     [HttpGet]
-//     public async Task<ActionResult<IEnumerable<Animal>>> DeleteGet(string ues)
-//     {
-//       var query = _db.Animals.AsQueryable();
-
-//       if (species != null)
-//       {
-//         query = query.Where(entry => entry.Species == species);
-//       }
-
-//       return await query.ToListAsync();
-//     }
