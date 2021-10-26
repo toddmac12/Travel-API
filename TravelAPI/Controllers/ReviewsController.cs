@@ -19,22 +19,14 @@ namespace TravelAPI.Controllers
       _db = db;
     }
 
-
     // GET: localhost:5000/api/reviews?sorted=true
     // get: http://localhost:5000/api/Reviews?sorted=true
-    // get: http://localhost:5000/api/Reviews?country=france
-
-    //As a user, I want to look up random cities just for fun.
-    // input: ?random=true 
-    // output:  what data do we want to return? - 
-    // output: return a destination - return all reviews for a random city
-    // which route would it fit in? or do we need a new route?
+    // get: http://localhost:5000/api/Reviews?country=france&pageNumber=2&pageSize=5
+    // get: http://localhost:5000/api/Reviews?country=france&pageNumber=2&pageSize=5
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Review>>> Get(string country, string city, bool sorted = false)
+    public async Task<ActionResult<IEnumerable<Review>>> Get(string country, string city, DateTime startDate, DateTime endDate, bool sorted = false, int pageNumber = 1, int pageSize = 10)
     {
-
-
       var query = _db.Reviews.AsQueryable();
 
       if (country != null)
@@ -66,12 +58,50 @@ namespace TravelAPI.Controllers
         }
         query = query.Where(entry => entry.City == city);
       }
+      //if requested by user, sort by rating,
       if (sorted)
       {
         query = query.OrderByDescending(entry => entry.Rating);
       }
+      //otherwise sort by id by default
+      else
+      {
+        query = query.OrderBy(review => review.ReviewId);
+      }
 
+      // As a user, I want to input date parameters and retrieve only reviews posted during that timeframe.
+      // get: http://localhost:5000/api/Reviews?startDate=2018-01-01 - get everything after
+      // get: http://localhost:5000/api/Reviews?endDate=2021-01-01 - get everything before
+      // get: http://localhost:5000/api/Reviews?startDate=2018-01-01&endDate=2021-01-01 - get everything between
 
+      // Date filtering?
+      if(startDate != DateTime.MinValue)
+      {
+        // int compareResult = DateTime.Compare(re)
+        query = query.Where(review => DateTime.Compare(review.Date, startDate) > 0);
+      }
+      if(endDate != DateTime.MinValue)
+      {
+        // int compareResult = DateTime.Compare(re)
+        query = query.Where(review => DateTime.Compare(review.Date, endDate) < 0);
+      }
+
+      //do pagination stuff after query is set using other parameters
+      //divide total by pageSize
+      //.Skip the pages you don't need
+      //.Take the ones you do need
+
+      //return some error if no records exist for the desired page number.
+      int pagesToSkip = pageSize * (pageNumber - 1);
+      query = query.Skip(pagesToSkip).Take(pageSize);
+
+      //after we filter everything, throw an error if it's empty
+      if(query.ToList().Count == 0)
+      {
+        return NotFound();
+      }
+
+      //how does the user know? they don't - usage needs to be documented - or we need to change the return data type to have a wrapping object with the list as a 
       return await query.ToListAsync();
     }
     
@@ -80,7 +110,9 @@ namespace TravelAPI.Controllers
     [HttpPost]
     public async Task<ActionResult<Review>> Post([FromBody] Review Review)
     {
+      // if (Review)
       _db.Reviews.Add(Review);
+      
       await _db.SaveChangesAsync();
 
       return CreatedAtAction("Post", new { id = Review.ReviewId }, Review);

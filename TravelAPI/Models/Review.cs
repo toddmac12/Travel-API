@@ -1,3 +1,5 @@
+using System;
+
 namespace TravelAPI.Models
 {
   public class Review
@@ -6,7 +8,7 @@ namespace TravelAPI.Models
     public string User { get; set; }
     public string Country { get; set; }
     public string City { get; set; }
-    // public string Date { get; set; }
+    public DateTime Date { get; set; }
     public int Rating { get; set; }
     // public string Description { get; set; }
   }
