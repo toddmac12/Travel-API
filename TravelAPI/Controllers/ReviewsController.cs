@@ -108,14 +108,18 @@ namespace TravelAPI.Controllers
 
     // POST api/Reviews
     [HttpPost]
-    public async Task<ActionResult<Review>> Post([FromBody] Review Review)
+    public async Task<ActionResult<Review>> Post([FromBody] Review review)
     {
-      // if (Review)
-      _db.Reviews.Add(Review);
+      // test if date is default - if so set to current date
+      if (review.Date == DateTime.MinValue)
+      {
+        review.Date = DateTime.Now; 
+      }
+      _db.Reviews.Add(review);
       
       await _db.SaveChangesAsync();
 
-      return CreatedAtAction("Post", new { id = Review.ReviewId }, Review);
+      return CreatedAtAction("Post", new { id = review.ReviewId }, review);
     }
 
     [HttpGet("mostVisited")]
